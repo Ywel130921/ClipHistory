@@ -1,189 +1,307 @@
 import AppKit
 
-// ─── Color Palette ───
-let bgStart = NSColor(calibratedRed: 0.25, green: 0.55, blue: 0.95, alpha: 1.0)   // blue
-let bgEnd   = NSColor(calibratedRed: 0.15, green: 0.35, blue: 0.75, alpha: 1.0)   // darker blue
-let clipColor    = NSColor(calibratedRed: 0.85, green: 0.87, blue: 0.90, alpha: 1.0)
-let clipShadow   = NSColor(calibratedRed: 0.50, green: 0.52, blue: 0.55, alpha: 0.6)
-let clockFace    = NSColor(calibratedRed: 1.0, green: 1.0, blue: 1.0, alpha: 0.92)
-let clockBorder  = NSColor(calibratedRed: 0.20, green: 0.20, blue: 0.22, alpha: 0.5)
-let handColor    = NSColor(calibratedRed: 0.15, green: 0.15, blue: 0.18, alpha: 0.85)
-let tickColor    = NSColor(calibratedRed: 0.25, green: 0.25, blue: 0.28, alpha: 0.6)
-let centerDot    = NSColor(calibratedRed: 0.15, green: 0.35, blue: 0.75, alpha: 1.0)
+// ════════════════════════════════════════════
+//  ClipHistory App Icon Generator
+//  Style: Tool-like, warm industrial precision
+//  Output: icon-1024.png (2048×2048 @2x retina)
+// ════════════════════════════════════════════
 
-let size = CGSize(width: 1024, height: 1024)
-let scale: CGFloat = 1.0
-let rect = CGRect(origin: .zero, size: size)
-let inset: CGFloat = 30
+let s: CGFloat = 2048                // output resolution (retina 2x)
+let margin: CGFloat = 120
+let r2: CGFloat = s / 2               // center
+let br: CGFloat = 200                 // board corner radius
 
-// ─── Clipboard Body ───
-let bodyRect = CGRect(x: inset, y: inset + 20, width: size.width - inset * 2, height: size.height - inset * 2 - 20)
-let bodyRadius: CGFloat = 90
+let board = CGRect(
+    x: margin, y: margin,
+    width: s - margin * 2, height: s - margin * 2
+)
 
-let image = NSImage(size: size)
+let paperInset: CGFloat = 80
+let paper = CGRect(
+    x: board.minX + paperInset,
+    y: board.minY + paperInset + 60,   // shift down to leave clip space
+    width: board.width - paperInset * 2,
+    height: board.height - paperInset * 2 - 60
+)
+let pr: CGFloat = 140                  // paper corner radius
+
+// ─── Colors ─────────────────────────────────────────
+// Board — warm metallic
+let boardTop   = NSColor(deviceRed: 0.58, green: 0.60, blue: 0.64, alpha: 1)
+let boardBot   = NSColor(deviceRed: 0.32, green: 0.34, blue: 0.38, alpha: 1)
+let boardEdge  = NSColor(deviceRed: 0.22, green: 0.23, blue: 0.26, alpha: 1)
+let boardShad  = NSColor(deviceRed: 0.08, green: 0.08, blue: 0.10, alpha: 0.50)
+
+// Paper — warm cream
+let paperFill  = NSColor(deviceRed: 0.96, green: 0.95, blue: 0.91, alpha: 1)
+let paperShad  = NSColor(deviceRed: 0.10, green: 0.10, blue: 0.12, alpha: 0.35)
+
+// Text lines — soft charcoal
+let textColor  = NSColor(deviceRed: 0.25, green: 0.25, blue: 0.28, alpha: 0.55)
+let textHi     = NSColor(deviceRed: 0.20, green: 0.20, blue: 0.22, alpha: 0.70)
+
+// Accent — warm copper
+let copper     = NSColor(deviceRed: 0.80, green: 0.50, blue: 0.25, alpha: 1)
+let copperHi   = NSColor(deviceRed: 0.92, green: 0.62, blue: 0.35, alpha: 1)
+let copperShad = NSColor(deviceRed: 0.50, green: 0.28, blue: 0.10, alpha: 0.6)
+
+// Clip — polished steel
+let clipTop    = NSColor(deviceRed: 0.75, green: 0.77, blue: 0.80, alpha: 1)
+let clipBot    = NSColor(deviceRed: 0.55, green: 0.57, blue: 0.60, alpha: 1)
+let clipHi     = NSColor(deviceRed: 0.90, green: 0.92, blue: 0.95, alpha: 0.7)
+
+// ─── Helpers ────────────────────────────────────────
+func rounded(_ r: CGRect, radius: CGFloat) -> NSBezierPath {
+    NSBezierPath(roundedRect: r, xRadius: radius, yRadius: radius)
+}
+
+func drawGradient(_ from: NSColor, _ to: NSColor, in path: NSBezierPath, angle: CGFloat = -90) {
+    guard let g = NSGradient(starting: from, ending: to) else { return }
+    g.draw(in: path, angle: angle)
+}
+
+// ─── Render ─────────────────────────────────────────
+let image = NSImage(size: NSSize(width: s, height: s))
 image.lockFocus()
+guard let ctx = NSGraphicsContext.current?.cgContext else {
+    print("ERROR: no graphics context")
+    exit(1)
+}
 
-// Background gradient
-let gradient = NSGradient(starting: bgStart, ending: bgEnd)!
-gradient.draw(in: bodyRect, angle: -45)
+// ── 1. Background (transparent — let macOS round it) ──
+// (intentionally left transparent)
 
-// Body shadow (inner glow)
-let shadow = NSShadow()
-shadow.shadowColor = NSColor.black.withAlphaComponent(0.15)
-shadow.shadowBlurRadius = 12
-shadow.shadowOffset = NSSize(width: 2, height: -4)
-shadow.set()
+// ── 2. Clipboard board ──
+let boardPath = rounded(board, radius: br)
 
-// Draw body with rounded rect
-let bodyPath = NSBezierPath(roundedRect: bodyRect, xRadius: bodyRadius, yRadius: bodyRadius)
-bodyPath.fill()
+// Board shadow
+ctx.saveGState()
+let boardShadow = NSShadow()
+boardShadow.shadowColor = NSColor.black.withAlphaComponent(0.25)
+boardShadow.shadowBlurRadius = 40
+boardShadow.shadowOffset = NSSize(width: 0, height: -12)
+boardShadow.set()
+boardPath.fill()
+ctx.restoreGState()
 
-// Subtle inner highlight
-NSColor.white.withAlphaComponent(0.08).setStroke()
-bodyPath.lineWidth = 2
-bodyPath.stroke()
+// Board gradient fill
+drawGradient(boardTop, boardBot, in: boardPath, angle: -90)
 
-// ─── Paper lines on clipboard ───
-let textInsetX: CGFloat = bodyRect.minX + 80
-let lineCenterY: CGFloat = bodyRect.midY + 30
-let lineColors = [
-    NSColor.white.withAlphaComponent(0.25),
-    NSColor.white.withAlphaComponent(0.15),
-    NSColor.white.withAlphaComponent(0.20),
-    NSColor.white.withAlphaComponent(0.10),
-    NSColor.white.withAlphaComponent(0.18),
+// Board edge highlight (top edge)
+ctx.saveGState()
+boardPath.addClip()
+let edgeHiPath = NSBezierPath()
+edgeHiPath.move(to: NSPoint(x: board.minX + br * 0.6, y: board.maxY - 4))
+edgeHiPath.line(to: NSPoint(x: board.maxX - br * 0.6, y: board.maxY - 4))
+NSColor.white.withAlphaComponent(0.15).setStroke()
+edgeHiPath.lineWidth = 6
+edgeHiPath.stroke()
+ctx.restoreGState()
+
+// Board border
+boardEdge.setStroke()
+boardPath.lineWidth = 6
+boardPath.stroke()
+
+// ── 3. Paper ──
+let paperPath = rounded(paper, radius: pr)
+
+// Paper drop shadow
+ctx.saveGState()
+let paperShadow = NSShadow()
+paperShadow.shadowColor = paperShad
+paperShadow.shadowBlurRadius = 30
+paperShadow.shadowOffset = NSSize(width: 0, height: -6)
+paperShadow.set()
+paperFill.setFill()
+paperPath.fill()
+ctx.restoreGState()
+
+// Paper actual fill
+paperFill.setFill()
+paperPath.fill()
+
+// Paper border (very subtle)
+NSColor.black.withAlphaComponent(0.06).setStroke()
+paperPath.lineWidth = 2
+paperPath.stroke()
+
+// ── 4. Paper texture (subtle grain) ──
+ctx.saveGState()
+paperPath.addClip()
+for _ in 0..<1200 {
+    let x = CGFloat.random(in: paper.minX...paper.maxX)
+    let y = CGFloat.random(in: paper.minY...paper.maxY)
+    let alpha = CGFloat.random(in: 0.0...0.06)
+    NSColor(deviceWhite: 0.5, alpha: alpha).setFill()
+    ctx.fill(CGRect(x: x, y: y, width: 2, height: 2))
+}
+ctx.restoreGState()
+
+// ── 5. Text lines on paper ──
+let lx = paper.minX + 100           // left margin
+let rMargin: CGFloat = 100
+let ly0: CGFloat = paper.maxY - 200  // bottom of first line (we go upward)
+let lineSpacing: CGFloat = 96
+
+let lineLengths: [CGFloat] = [
+    0.72, 0.88, 0.42, 0.95, 0.60,
+    0.80, 0.50, 0.92,
 ]
-for i in 0..<5 {
-    let y = lineCenterY - CGFloat(i) * 40 + 40
-    let lineWidth: CGFloat = (i == 0 || i == 2) ? bodyRect.width - 160 : bodyRect.width - 200
-    let linePath = NSBezierPath()
-    linePath.move(to: NSPoint(x: textInsetX, y: y))
-    linePath.line(to: NSPoint(x: textInsetX + lineWidth, y: y))
-    lineColors[i % lineColors.count].setStroke()
-    linePath.lineWidth = 3
-    linePath.stroke()
+
+ctx.saveGState()
+for (i, ratio) in lineLengths.enumerated() {
+    let y = ly0 - CGFloat(i) * lineSpacing
+    let w = (paper.width - lx + paper.minX - rMargin) * ratio
+    let lw: CGFloat = i == 0 ? 12 : 7   // first line thicker (title)
+
+    if i == 0 {
+        // First line — "title" line with accent indicator
+        let dotR: CGFloat = 14
+        let dotX = lx - 40
+        let dotY = y - dotR / 2 + 2
+        let dot = NSBezierPath(ovalIn: CGRect(x: dotX, y: dotY, width: dotR, height: dotR))
+        copper.setFill()
+        dot.fill()
+        copperShad.setStroke()
+        dot.lineWidth = 1.5
+        dot.stroke()
+
+        // Title line
+        textHi.setStroke()
+    } else {
+        textColor.setStroke()
+    }
+
+    let line = NSBezierPath()
+    line.move(to: NSPoint(x: lx, y: y))
+    line.line(to: NSPoint(x: lx + w, y: y))
+    line.lineWidth = lw
+    line.lineCapStyle = .round
+    line.stroke()
 }
+ctx.restoreGState()
 
-// ─── Clock face ───
-let clockDiameter: CGFloat = 260
-let clockRect = CGRect(
-    x: bodyRect.midX - clockDiameter / 2,
-    y: bodyRect.minY + 50,
-    width: clockDiameter,
-    height: clockDiameter
+// ── 6. Copper paper clip accent (top-right of paper) ──
+let clipX = paper.maxX - 100
+let clipY = paper.maxY - 100
+let clipR: CGFloat = 50
+
+ctx.saveGState()
+ctx.setShadow(offset: CGSize(width: 2, height: -2), blur: 8, color: NSColor.black.withAlphaComponent(0.3).cgColor)
+
+let paperclip = NSBezierPath()
+paperclip.move(to: NSPoint(x: clipX - clipR, y: clipY + clipR * 1.8))
+paperclip.line(to: NSPoint(x: clipX - clipR, y: clipY - clipR * 0.6))
+paperclip.curve(
+    to: NSPoint(x: clipX + clipR, y: clipY - clipR * 0.6),
+    controlPoint1: NSPoint(x: clipX - clipR, y: clipY - clipR * 1.8),
+    controlPoint2: NSPoint(x: clipX + clipR, y: clipY - clipR * 1.8)
 )
+paperclip.line(to: NSPoint(x: clipX + clipR, y: clipY + clipR * 0.6))
 
-// Clock circle
-let clockPath = NSBezierPath(ovalIn: clockRect)
-clockFace.setFill()
-clockPath.fill()
+copper.setStroke()
+paperclip.lineWidth = 10
+paperclip.lineCapStyle = .round
+paperclip.lineJoinStyle = .round
+paperclip.stroke()
 
-clockBorder.setStroke()
-clockPath.lineWidth = 6
-clockPath.stroke()
+// Highlight on paperclip
+let hlClip = NSBezierPath()
+hlClip.move(to: NSPoint(x: clipX - clipR + 4, y: clipY + clipR * 0.4))
+hlClip.line(to: NSPoint(x: clipX - clipR + 4, y: clipY - clipR * 0.3))
+copperHi.withAlphaComponent(0.4).setStroke()
+hlClip.lineWidth = 3
+hlClip.lineCapStyle = .round
+hlClip.stroke()
 
-// Clock ticks (12 positions)
-let center = NSPoint(x: clockRect.midX, y: clockRect.midY)
-let tickRadiusOuter: CGFloat = clockDiameter / 2 - 14
-let tickRadiusInner: CGFloat = clockDiameter / 2 - 30
-let tickRadiusInnerSmall: CGFloat = clockDiameter / 2 - 22
+ctx.restoreGState()
 
-for i in 0..<12 {
-    let angle = CGFloat(i) * .pi / 6 - .pi / 2
-    let isMain = i % 3 == 0
-    let innerR = isMain ? tickRadiusInner : tickRadiusInnerSmall
-    let p1 = NSPoint(x: center.x + cos(angle) * innerR, y: center.y + sin(angle) * innerR)
-    let p2 = NSPoint(x: center.x + cos(angle) * tickRadiusOuter, y: center.y + sin(angle) * tickRadiusOuter)
-    let tickPath = NSBezierPath()
-    tickPath.move(to: p1)
-    tickPath.line(to: p2)
-    tickColor.setStroke()
-    tickPath.lineWidth = isMain ? 7 : 3.5
-    tickPath.stroke()
-}
+// ── 7. Top clip mechanism ──
+let topClipW: CGFloat = 300
+let topClipH: CGFloat = 150
+let tcx = r2 - topClipW / 2
+let tcy = board.maxY - 10
 
-// Hour hand (pointing to ~10:10 for aesthetic look)
-let hourAngle: CGFloat = -50 * .pi / 180  // ~10 o'clock
-let hourLen: CGFloat = clockDiameter * 0.25
-let hourPath = NSBezierPath()
-hourPath.move(to: center)
-let hourEnd = NSPoint(x: center.x + cos(hourAngle) * hourLen, y: center.y + sin(hourAngle) * hourLen)
-hourPath.line(to: hourEnd)
-handColor.setStroke()
-hourPath.lineWidth = 16
-hourPath.lineCapStyle = .round
-hourPath.stroke()
-
-// Minute hand (pointing to ~10:10, minute at ~2)
-let minAngle: CGFloat = 10 * .pi / 180
-let minLen: CGFloat = clockDiameter * 0.38
-let minPath = NSBezierPath()
-minPath.move(to: center)
-let minEnd = NSPoint(x: center.x + cos(minAngle) * minLen, y: center.y + sin(minAngle) * minLen)
-minPath.line(to: minEnd)
-handColor.setStroke()
-minPath.lineWidth = 10
-minPath.lineCapStyle = .round
-minPath.stroke()
-
-// Center dot
-let dotRect = CGRect(x: center.x - 14, y: center.y - 14, width: 28, height: 28)
-let dotPath = NSBezierPath(ovalIn: dotRect)
-centerDot.setFill()
-dotPath.fill()
-NSColor.white.setStroke()
-dotPath.lineWidth = 3
-dotPath.stroke()
-
-// ─── Clip at top ───
-let clipWidth: CGFloat = 100
-let clipHeight: CGFloat = 60
-let clipX = bodyRect.midX - clipWidth / 2
-let clipY = bodyRect.maxY - 6
-
-let clipPath = NSBezierPath()
-clipPath.move(to: NSPoint(x: clipX, y: clipY))
-clipPath.line(to: NSPoint(x: clipX, y: clipY + clipHeight))
-clipPath.curve(
-    to: NSPoint(x: clipX + clipWidth, y: clipY + clipHeight),
-    controlPoint1: NSPoint(x: clipX + 10, y: clipY + clipHeight + 20),
-    controlPoint2: NSPoint(x: clipX + clipWidth - 10, y: clipY + clipHeight + 20)
+let topClip = NSBezierPath()
+topClip.move(to: NSPoint(x: tcx, y: tcy))
+topClip.line(to: NSPoint(x: tcx, y: tcy + topClipH))
+topClip.curve(
+    to: NSPoint(x: tcx + topClipW, y: tcy + topClipH),
+    controlPoint1: NSPoint(x: tcx + 30, y: tcy + topClipH + 50),
+    controlPoint2: NSPoint(x: tcx + topClipW - 30, y: tcy + topClipH + 50)
 )
-clipPath.line(to: NSPoint(x: clipX + clipWidth, y: clipY))
-clipPath.line(to: NSPoint(x: clipX + clipWidth - 12, y: clipY - 8))
-clipPath.line(to: NSPoint(x: clipX + 12, y: clipY - 8))
-clipPath.close()
+topClip.line(to: NSPoint(x: tcx + topClipW, y: tcy))
+topClip.line(to: NSPoint(x: tcx + topClipW - 30, y: tcy - 20))
+topClip.line(to: NSPoint(x: tcx + 30, y: tcy - 20))
+topClip.close()
 
-clipColor.setFill()
-clipPath.fill()
+// Clip drop shadow
+ctx.saveGState()
+ctx.setShadow(offset: CGSize(width: 0, height: -8), blur: 25, color: NSColor.black.withAlphaComponent(0.35).cgColor)
+clipTop.setFill()
+topClip.fill()
+ctx.restoreGState()
 
-clipShadow.setStroke()
-clipPath.lineWidth = 3
-clipPath.stroke()
+// Clip gradient
+drawGradient(clipTop, clipBot, in: topClip, angle: -90)
 
-// ─── light reflection/gloss ───
-let glossPath = NSBezierPath(roundedRect: bodyRect, xRadius: bodyRadius, yRadius: bodyRadius)
-let glossGradient = NSGradient(
-    starting: NSColor.white.withAlphaComponent(0.12),
+// Clip border
+boardEdge.withAlphaComponent(0.4).setStroke()
+topClip.lineWidth = 4
+topClip.stroke()
+
+// Clip highlight (top edge)
+let clipHiPath = NSBezierPath()
+clipHiPath.move(to: NSPoint(x: tcx + 50, y: tcy + topClipH + 10))
+clipHiPath.curve(
+    to: NSPoint(x: tcx + topClipW - 50, y: tcy + topClipH + 10),
+    controlPoint1: NSPoint(x: tcx + 70, y: tcy + topClipH + 55),
+    controlPoint2: NSPoint(x: tcx + topClipW - 70, y: tcy + topClipH + 55)
+)
+clipHi.setStroke()
+clipHiPath.lineWidth = 8
+clipHiPath.lineCapStyle = .round
+clipHiPath.stroke()
+
+// ── 8. Overall gloss overlay ──
+ctx.saveGState()
+boardPath.addClip()
+let gloss = NSBezierPath(roundedRect: board, xRadius: br, yRadius: br)
+guard let glossGrad = NSGradient(
+    starting: NSColor.white.withAlphaComponent(0.06),
     ending: NSColor.white.withAlphaComponent(0.0)
-)!
-glossGradient.draw(in: glossPath, angle: 90)
+) else { exit(1) }
+glossGrad.draw(in: gloss, angle: 90)
+ctx.restoreGState()
 
+// ── 9. Very subtle inner shadow on board (bottom edge) ──
+ctx.saveGState()
+boardPath.addClip()
+let innerShad = NSBezierPath()
+innerShad.move(to: NSPoint(x: board.minX + 20, y: board.minY + 10))
+innerShad.line(to: NSPoint(x: board.maxX - 20, y: board.minY + 10))
+NSColor.black.withAlphaComponent(0.15).setStroke()
+innerShad.lineWidth = 15
+innerShad.stroke()
+ctx.restoreGState()
+
+// ── Done ──
 image.unlockFocus()
 
-// ─── Save 1024x1024 PNG ───
+// ─── Export ─────────────────────────────────────────
 guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
     print("ERROR: failed to get CGImage")
     exit(1)
 }
 
 let bitmapRep = NSBitmapImageRep(cgImage: cgImage)
-bitmapRep.size = size
+bitmapRep.size = NSSize(width: s, height: s)
 guard let pngData = bitmapRep.representation(using: .png, properties: [.compressionFactor: 1.0]) else {
-    print("ERROR: failed to create PNG data")
+    print("ERROR: failed to create PNG")
     exit(1)
 }
 
-let outputURL = URL(fileURLWithPath: "icon-1024.png")
-try pngData.write(to: outputURL)
-print("✅ Saved icon-1024.png (\(pngData.count) bytes)")
+let outURL = URL(fileURLWithPath: "icon-1024.png")
+try pngData.write(to: outURL)
+print("✅ Generated icon-1024.png — \(pngData.count) bytes (\(s)×\(s))")

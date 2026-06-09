@@ -19,26 +19,55 @@ struct ClipboardItem: Identifiable, Codable, Equatable {
 
     var preview: String {
         if type == "image" {
-            return "[Image]"
+            return "[图片]"
         }
         let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.count > 120 {
-            return String(trimmed.prefix(120)) + "..."
+        if trimmed.count > 80 {
+            return String(trimmed.prefix(80)) + "..."
         }
-        return trimmed
+        return trimmed.isEmpty ? "(空内容)" : trimmed
     }
 
     var timeAgo: String {
         let interval = Date().timeIntervalSince(timestamp)
-        if interval < 60 {
-            return "Just now"
+        if interval < 10 {
+            return "刚刚"
+        } else if interval < 60 {
+            return "\(Int(interval))秒前"
         } else if interval < 3600 {
-            return "\(Int(interval / 60))m ago"
+            return "\(Int(interval / 60))分钟前"
         } else if interval < 86400 {
-            return "\(Int(interval / 3600))h ago"
+            return "\(Int(interval / 3600))小时前"
         } else {
-            return "\(Int(interval / 86400))d ago"
+            return "\(Int(interval / 86400))天前"
         }
+    }
+
+    var contentLengthInfo: String {
+        if type == "image" {
+            return "图片"
+        }
+        let count = content.count
+        if count < 1000 {
+            return "\(count) 字符"
+        } else {
+            return String(format: "%.1fK 字符", Double(count) / 1000.0)
+        }
+    }
+
+    var lineCount: Int {
+        content.split(separator: "\n").count
+    }
+
+    var detailLine: String {
+        if type == "image" {
+            return "图片"
+        }
+        let lines = lineCount
+        if lines > 1 {
+            return "\(contentLengthInfo) · \(lines) 行"
+        }
+        return contentLengthInfo
     }
 
     static func == (lhs: ClipboardItem, rhs: ClipboardItem) -> Bool {
