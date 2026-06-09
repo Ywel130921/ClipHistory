@@ -9,7 +9,7 @@ final class ClipboardMonitor: ObservableObject {
 
     @Published var isRunning = false
 
-    init(interval: TimeInterval = 0.5) {
+    init(interval: TimeInterval = 0.3) {
         self.interval = interval
         self.lastChangeCount = pasteboard.changeCount
     }

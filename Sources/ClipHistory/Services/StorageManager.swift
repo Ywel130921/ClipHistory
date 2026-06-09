@@ -73,7 +73,10 @@ final class StorageManager: ObservableObject {
 
     private func save() {
         guard let data = try? encoder.encode(items) else { return }
-        try? data.write(to: storageURL, options: .atomic)
+        // Write to disk on a background queue to avoid blocking the main thread
+        DispatchQueue.global(qos: .utility).async { [storageURL] in
+            try? data.write(to: storageURL, options: .atomic)
+        }
     }
 
     private func load() {

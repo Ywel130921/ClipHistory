@@ -33,6 +33,8 @@ class StatusButton: NSView {
 class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem?
     var popover: NSPopover?
+    private var hideWorkItem: DispatchWorkItem?
+    private let hideDelay: TimeInterval = 0.3
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupStatusItem()
@@ -50,15 +52,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Setup popover for hover
         popover = NSPopover()
         popover?.contentSize = NSSize(width: 300, height: 200)
-        popover?.behavior = .transient
+        popover?.behavior = .semitransient
         popover?.animates = true
-        popover?.contentViewController = NSHostingController(rootView: HoverPanelView())
+
+        // Create HoverPanelView with callbacks to coordinate dismiss
+        let hoverPanel = HoverPanelView(
+            onPopoverHoverEnter: { [weak self] in
+                self?.cancelHidePopover()
+            },
+            onPopoverHoverExit: { [weak self] in
+                self?.scheduleHidePopover()
+            }
+        )
+        popover?.contentViewController = NSHostingController(rootView: hoverPanel)
 
         // Wrap the button in a StatusButton for hover tracking
         let statusButton = StatusButton(frame: button.bounds)
         statusButton.autoresizingMask = [.width, .height]
         statusButton.onMouseEntered = { [weak self] in
+            self?.cancelHidePopover()
             self?.showPopover()
+        }
+        statusButton.onMouseExited = { [weak self] in
+            self?.scheduleHidePopover()
         }
         button.addSubview(statusButton)
 
@@ -81,7 +97,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func hidePopover() {
+        hideWorkItem?.cancel()
+        hideWorkItem = nil
         popover?.performClose(nil)
+    }
+
+    func scheduleHidePopover() {
+        hideWorkItem?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            self?.hidePopover()
+        }
+        hideWorkItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + hideDelay, execute: work)
+    }
+
+    func cancelHidePopover() {
+        hideWorkItem?.cancel()
+        hideWorkItem = nil
     }
 
     @objc func statusBarButtonClicked() {
