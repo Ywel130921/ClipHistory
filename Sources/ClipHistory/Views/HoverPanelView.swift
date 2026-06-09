@@ -2,6 +2,8 @@ import SwiftUI
 
 struct HoverPanelView: View {
     @ObservedObject var storage = StorageManager.shared
+    var onPopoverHoverEnter: (() -> Void)?
+    var onPopoverHoverExit: (() -> Void)?
 
     var body: some View {
         let recent = storage.recentItems(count: 5)
@@ -30,6 +32,13 @@ struct HoverPanelView: View {
         }
         .frame(width: 300)
         .padding(.vertical, 6)
+        .onHover { hovering in
+            if hovering {
+                onPopoverHoverEnter?()
+            } else {
+                onPopoverHoverExit?()
+            }
+        }
     }
 }
 
