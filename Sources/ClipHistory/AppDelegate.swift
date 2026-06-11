@@ -107,8 +107,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private let hideDelay: TimeInterval = 0.3
     private var cancellables = Set<AnyCancellable>()
 
+    // ── Global clipboard monitor — runs for the lifetime of the app ──
+    private let clipboardMonitor = ClipboardMonitor()
+    private var cleanupManager = CleanupManager()
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupStatusItem()
+        // Start monitoring clipboard globally (independent of window visibility)
+        clipboardMonitor.start(storage: StorageManager.shared)
+        // Start periodic cleanup globally
+        cleanupManager.start(storage: StorageManager.shared)
         // Observe storage changes to update the status bar badge in real time
         StorageManager.shared.$items
             .receive(on: DispatchQueue.main)
