@@ -2,8 +2,6 @@ import SwiftUI
 
 struct ContentView: View {
     @ObservedObject private var storage = StorageManager.shared
-    @StateObject private var clipboardMonitor = ClipboardMonitor()
-    @State private var cleanupManager = CleanupManager()
     @State private var searchText = ""
     @State private var showPinnedOnly = false
     @State private var selectedItemID: UUID?
@@ -40,14 +38,6 @@ struct ContentView: View {
             }
         } message: {
             Text("This will permanently delete all clipboard history, including pinned items. This action cannot be undone.")
-        }
-        .onAppear {
-            clipboardMonitor.start(storage: storage)
-            cleanupManager.start(storage: storage)
-        }
-        .onDisappear {
-            clipboardMonitor.stop()
-            cleanupManager.stop()
         }
     }
 
